@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+    <title>My Englis mate</title>
+    <style>
+        .chat-container {
+            width: 400px;
+            height:auto ;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            border: 1px solid #ccc;
+        }
+
+        .message {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #ffffff;
+            border: 1px solid #ccc;
+        }
+
+        .sent-message {
+            text-align: right;
+        }
+
+        .received-message {
+            text-align: left;
+        }
+
+        .typing-message {
+            font-style: italic;
+        }
+        #record-button{
+        padding: 15px 30px;
+        margin-left: 10px;
+        border-radius: 5px;}
+    </style>
+</head>
+<body>
+  <div class="chat-container">
+        <h1>My English mate</h1>
+
+        <div class="message sent-message">
+            <p>You</p>
+            <audio src="{{url_for('static', filename='audio.wav')}}" controls></audio>
+        </div>
+
+        <div class="message received-message">
+            <p>Your mate</p>
+            <audio src="{{url_for('static', filename='recived_audio.mp3')}}" controls></audio>
+        </div>
+
+        {% if teacher_typing %}
+        <div class="message received-message typing-message">
+            <p>Teacher is recording...</p>
+        </div>
+        {% endif %}
+  <button id="record-button">Record Audio &#127908</button>
+
+    </div>
+ 
+  <script>
+  
+
+  var recordButton = document.getElementById('record-button');
+  var mediaRecorder;
+  var audioChunks = [];
+
+  recordButton.addEventListener('click', function() {
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(function(stream) {
+        mediaRecorder = new MediaRecorder(stream);
+
+        mediaRecorder.addEventListener('dataavailable', function(event) {
+          audioChunks.push(event.data);
+        });
+
+        mediaRecorder.addEventListener('stop', function() {
+          var audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+          var formData = new FormData();
+          formData.append('audio', audioBlob, 'audio.wav');
+
+          fetch('/chat', {
+            method: 'POST',
+            body: formData
+          })
+          .then(function(response) {
+            if (response.ok) {
+              console.log('Audio recorded and saved successfully!');
+            } else {
+              console.error('Failed to save audio.');
+            }
+          })
+          .catch(function(error) {
+            console.error('Error saving audio:', error);
+          });
+        });
+
+        mediaRecorder.start();
+      })
+      .catch(function(error) {
+        console.error('Error accessing microphone:', error);
+      });
+  });
+
+  recordButton.addEventListener('mouseup', function() {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      mediaRecorder.stop();
+      audioChunks = [];
+    }
+  });
+
+  </script>
+</body>
+</html>
